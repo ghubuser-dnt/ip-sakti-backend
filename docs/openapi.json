@@ -1,0 +1,338 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IP-SAKTI Sahayak API",
+    "description": "RAG backend for Ayurveda IP/regulatory guidance (SIH26045).",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/classify": {
+      "post": {
+        "summary": "Classify Formulation",
+        "description": "Thin wrapper: build ClassificationAnswers from the request body,\nrun the existing Q1-Q5 decision tree, and return its posture\nsummary. A ClassificationError (an answer needed to reach a\nverdict was missing) becomes a clean 422, not a raw 500.",
+        "operationId": "classify_formulation_classify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/query": {
+      "post": {
+        "summary": "Query",
+        "description": "Thin wrapper around run_query.answer_query() \u2014 the exact\nretrieve -> confidence-gate -> generate/abstain wiring already\nsmoke-tested in Phase E. formulation_category, if present, is\nalready validated to be a real FormulationCategory by Pydantic\nbefore it ever reaches this function.",
+        "operationId": "query_query_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClassifyRequest": {
+        "properties": {
+          "q1_from_first_schedule_text": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q1 From First Schedule Text"
+          },
+          "q2_requires_new_clinical_evidence": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q2 Requires New Clinical Evidence"
+          },
+          "q3_proprietary_blend_marketed_as_medicine": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q3 Proprietary Blend Marketed As Medicine"
+          },
+          "q4_extraction_standardized_phytomedicine": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q4 Extraction Standardized Phytomedicine"
+          },
+          "q5_consumed_as_food_or_supplement": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q5 Consumed As Food Or Supplement"
+          }
+        },
+        "type": "object",
+        "title": "ClassifyRequest",
+        "description": "Mirrors classification.ClassificationAnswers field-for-field.\nAll fields are optional at the API layer too \u2014 classify() itself\nis what enforces \"this question was needed but unanswered\" via\nClassificationError, which the endpoint translates into a 422.",
+        "example": {
+          "q1_from_first_schedule_text": false,
+          "q2_requires_new_clinical_evidence": true
+        }
+      },
+      "ClassifyResponse": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/FormulationCategory"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "ip_posture": {
+            "type": "string",
+            "title": "Ip Posture"
+          },
+          "abs_posture": {
+            "type": "string",
+            "title": "Abs Posture"
+          },
+          "prior_art_note": {
+            "type": "string",
+            "title": "Prior Art Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "label",
+          "ip_posture",
+          "abs_posture",
+          "prior_art_note"
+        ],
+        "title": "ClassifyResponse",
+        "description": "category + the full POSTURE_SUMMARY dict for that category,\nflattened into named fields (label, ip_posture, abs_posture,\nprior_art_note) rather than passed through as a raw dict."
+      },
+      "ConfidenceLevel": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "ConfidenceLevel"
+      },
+      "FormulationCategory": {
+        "type": "string",
+        "enum": [
+          "classical_medicine",
+          "new_drug",
+          "proprietary_medicine",
+          "phytopharmaceutical",
+          "ayurveda_aahar",
+          "cosmetic"
+        ],
+        "title": "FormulationCategory"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "QueryRequest": {
+        "properties": {
+          "query_text": {
+            "type": "string",
+            "title": "Query Text"
+          },
+          "jurisdiction": {
+            "type": "string",
+            "title": "Jurisdiction",
+            "description": "Must be \"india\" or \"international\". Enforced at the retrieval layer by build_where_clause(); FastAPI just passes it through here."
+          },
+          "ip_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Type"
+          },
+          "formulation_category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FormulationCategory"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If provided, must be one of FormulationCategory's values \u2014 arbitrary strings are rejected by Pydantic before this ever reaches retrieval."
+          },
+          "n_results": {
+            "type": "integer",
+            "title": "N Results",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "query_text",
+          "jurisdiction"
+        ],
+        "title": "QueryRequest",
+        "example": {
+          "jurisdiction": "india",
+          "query_text": "Can a classical Ayurvedic formulation be patented in India?"
+        }
+      },
+      "QueryResponse": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/ConfidenceLevel"
+          },
+          "abstained": {
+            "type": "boolean",
+            "title": "Abstained"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "confidence",
+          "abstained"
+        ],
+        "title": "QueryResponse",
+        "description": "Typed mirror of answer_query()'s return dict."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
