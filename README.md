@@ -112,12 +112,12 @@ This is general information tooling, not legal advice.
 
 ## Credits
 
-Built by **[Laksh Varshney]** (AI/RAG backend: classification tree, filtered retrieval, confidence/abstention, generation, FastAPI endpoints) as part of a team for SIH 2026.
+Built by **Laksh Varshney** (AI/RAG backend: classification tree, filtered retrieval, confidence/abstention, generation, FastAPI endpoints) as part of a team for SIH 2026.
 
 Teammates, who worked on parts that are not in this repository:
 
-- **[Atharva Raghuvanshi & Mohd Tabish Irfan]**: data collection and the vector-store corpus
-- **[Aduitiya Srivastava]**: frontend UI/UX
-- **[Lakshay Beniwal]**: integration
+- **Atharva Raghuvanshi & Mohd Tabish Irfan**: data collection and the vector-store corpus
+- **Aduitiya Srivastava**: frontend UI/UX
+- **Lakshay Beniwal**: integration
 
 Thanks to them for their work on the rest of the project. The chunk schema in `docs/Chunk_Schema_Spec_for_Data_Team.md` was written as the contract between the backend and the data side.
